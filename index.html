@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>MIRAKURU-VERSE | GLOBAL</title>
+
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+
+    <script type="importmap">
+    { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
+    </script>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
+</head>
+
+<body>
+
+    <div id="copyright" class="copyright-footer on-login">
+        &copy; 2025 奥河 董馬（Toma Okugawa）. All Rights Reserved.
+    </div>
+
+    <div id="login-screen">
+        <div class="login-box">
+            <div class="login-title">MIRAKURU-VERSE</div>
+            <div class="login-subtitle">GLOBAL OPEN WORLD</div>
+            <input type="text" id="nickname-input" placeholder="ニックネームを入力" maxlength="12" autocomplete="off">
+            <div class="consent-box">
+                <div class="consent-text">
+                    本アプリケーションは技術デモとして公開されています。<br>
+                    通信には公開されたMQTTテストブローカーを使用しており、チャット内容は同じロビーにいる全員に公開されます。<br>
+                    個人情報や機密情報は入力しないでください。
+                </div>
+                <label class="consent-check">
+                    <input type="checkbox" id="consent-checkbox">
+                    <span>上記に同意します</span>
+                </label>
+            </div>
+            <button id="btn-connect" disabled>ENTER WORLD</button>
+            <div class="login-note">ニックネームは1〜12文字（空白なし）</div>
+        </div>
+    </div>
+
+    <div id="ui-layer">
+        <header>
+            <div class="header-left">
+                <div class="room-badge" id="room-display">GLOBAL LOBBY</div>
+                <div id="nickname-display">GUEST</div>
+            </div>
+            <div class="header-right">
+                <button id="py-menu-button" class="icon-button" type="button" aria-label="Python Menu">☰</button>
+                <button id="btn-exit">EXIT</button>
+            </div>
+        </header>
+        <!-- SYSTEM LAB REMOVED FOR PYTHON-FOCUSED MODE
+        <div id="system-panel" class="system-panel hidden" aria-hidden="true">
+            <div class="system-card">
+                <div class="system-header">
+                    <div class="system-title">SYSTEM LAB</div>
+                    <button id="system-close" class="icon-button" type="button"
+                        aria-label="Close System Panel">✕</button>
+                </div>
+                <div class="system-body">
+                    <section class="system-section" id="magic-section">
+                        <div class="system-section-title">MAGIC PARTICLES</div>
+                        <div class="system-row">
+                            <label for="magic-type">TYPE</label>
+                            <select id="magic-type">
+                                <option value="snow">SNOW</option>
+                                <option value="spark">SPARK</option>
+                                <option value="fireworks">FIREWORKS</option>
+                            </select>
+                        </div>
+                        <div class="system-row">
+                            <label for="magic-color">COLOR</label>
+                            <input type="color" id="magic-color" value="#ffffff">
+                        </div>
+                        <div class="system-row">
+                            <label for="magic-count">AMOUNT</label>
+                            <input type="range" id="magic-count" min="40" max="600" step="20" value="240">
+                            <span id="magic-count-value" class="value-chip">240</span>
+                        </div>
+                        <div class="system-row">
+                            <label for="magic-speed">SPEED</label>
+                            <input type="range" id="magic-speed" min="0.2" max="3" step="0.1" value="0.8">
+                            <span id="magic-speed-value" class="value-chip">0.8</span>
+                        </div>
+                        <div class="system-row">
+                            <label for="magic-size">SIZE</label>
+                            <input type="range" id="magic-size" min="0.04" max="0.4" step="0.02" value="0.12">
+                            <span id="magic-size-value" class="value-chip">0.12</span>
+                        </div>
+                        <button id="magic-apply" class="system-action" type="button">APPLY MAGIC</button>
+                    </section>
+                    <section class="system-section" id="treasure-section">
+                        <div class="system-section-title">TREASURE HUNT</div>
+                        <div class="system-row">
+                            <label>DISTANCE</label>
+                            <span id="treasure-distance" class="value-chip">--</span>
+                        </div>
+                        <div class="system-row">
+                            <label for="treasure-auto">AUTO HOT/COLD</label>
+                            <input type="checkbox" id="treasure-auto" checked>
+                        </div>
+                        <div class="system-row">
+                            <label for="treasure-broadcast">LOBBY CHAT</label>
+                            <input type="checkbox" id="treasure-broadcast">
+                        </div>
+                        <div class="system-actions">
+                            <button id="treasure-hint" class="system-action" type="button">HOT / COLD</button>
+                            <button id="treasure-reset" class="system-action ghost" type="button">RESET</button>
+                        </div>
+                    </section>
+                    <section class="system-section" id="tag-section">
+                        <div class="system-section-title">TAG BOT</div>
+                        <div class="system-row">
+                            <label for="tag-enabled">ACTIVE</label>
+                            <input type="checkbox" id="tag-enabled" checked>
+                        </div>
+                        <div class="system-row">
+                            <label for="tag-mode">MODE</label>
+                            <select id="tag-mode">
+                                <option value="chase">CHASE</option>
+                                <option value="flee">FLEE</option>
+                            </select>
+                        </div>
+                        <div class="system-row">
+                            <label for="tag-radius">RANGE</label>
+                            <input type="range" id="tag-radius" min="4" max="24" step="1" value="12">
+                            <span id="tag-radius-value" class="value-chip">12</span>
+                        </div>
+                        <div class="system-row">
+                            <label for="tag-speed">SPEED</label>
+                            <input type="range" id="tag-speed" min="0.6" max="3" step="0.1" value="1.2">
+                            <span id="tag-speed-value" class="value-chip">1.2</span>
+                        </div>
+                    </section>
+                    <section class="system-section" id="npc-section">
+                        <div class="system-section-title">NPC CONTROL</div>
+                        <div class="system-row">
+                            <label for="npc-greeter">GREETER</label>
+                            <input type="checkbox" id="npc-greeter" checked>
+                        </div>
+                        <div class="system-row">
+                            <label for="npc-patrol">PATROL</label>
+                            <input type="checkbox" id="npc-patrol" checked>
+                        </div>
+                        <div class="system-row">
+                            <label for="npc-pet">PET</label>
+                            <input type="checkbox" id="npc-pet" checked>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+        </div>
+        -->
+        <div id="mobile-controls">
+            <div class="touch-pad">
+                <div class="touch-row">
+                    <button class="touch-btn" data-key="KeyW" type="button">▲</button>
+                </div>
+                <div class="touch-row">
+                    <button class="touch-btn" data-key="KeyA" type="button">◀</button>
+                    <button class="touch-btn" data-key="KeyS" type="button">▼</button>
+                    <button class="touch-btn" data-key="KeyD" type="button">▶</button>
+                </div>
+            </div>
+            <div class="touch-pad vertical">
+                <button class="touch-btn" data-key="Space" type="button">UP</button>
+                <button class="touch-btn" data-key="ShiftLeft" type="button">DN</button>
+            </div>
+        </div>
+        <div id="python-hint">WASD / 方向キー / タッチ / Python で操作できます</div>
+    </div>
+
+    <div id="bubbles-layer"></div>
+    <div id="name-tags-layer"></div>
+    <div id="canvas-container"></div>
+    <div id="py-panel" class="py-panel hidden" aria-hidden="true">
+        <div class="py-card">
+            <div class="py-header">
+                <div class="py-title">PYTHON CONTROL</div>
+                <div class="py-actions">
+                    <button id="py-run" class="py-btn" type="button">RUN</button>
+                    <button id="py-clear" class="py-btn" type="button">CLEAR</button>
+                    <button id="py-close" class="py-btn" type="button">CLOSE</button>
+                </div>
+            </div>
+            <div class="py-body">
+                <div class="py-row">
+                    <div class="py-docs">
+                        <div class="py-docs-title">APP API</div>
+                        <pre class="py-docs-code">move(forward=0, right=0, up=0)  # 前後/左右/上下へ移動
+turn(deg)  # 方向を回転(度)
+look(yaw_deg=0, pitch_deg=0)  # 視点を相対移動
+set_view(yaw_deg=0, pitch_deg=0)  # 視点を指定角度に固定
+say("text")  # チャット送信
+react("👍")  # リアクション送信
+emote("wave"|"spin"|"spark"|"cheer")  # エモート再生
+magic(type="snow", count=200, color="#ffffff", speed=1.0, size=0.12)  # パーティクル生成
+treasure_distance()  # 宝箱までの距離
+treasure_hint(say=False)  # Hot/Cold判定
+treasure_reset()  # 宝箱座標リセット
+tag_config(mode="chase", radius=120, speed=1.2, active=True)  # TAG-BOT設定
+npc_config(greeter=True, patrol=True, pet=True)  # NPCの有効/無効
+status()  # 状態取得
+help()  # API一覧</pre>
+                    </div>
+                    <textarea id="py-code" spellcheck="false"># Example
+move(forward=2)
+turn(30)
+magic(type="snow", count=320, color="#b3ecff", speed=1.2)
+treasure_reset()
+treasure_hint(say=True)
+tag_config(mode="flee", radius=10)
+npc_config(pet=True)</textarea>
+                </div>
+                <div class="py-footer">
+                    <span id="py-status">Pyodide: Loading...</span>
+                </div>
+                <pre id="py-output"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="main.js"></script>
+</body>
+
+</html>
